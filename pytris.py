@@ -1,4 +1,5 @@
 #from PIL import Image
+from math import ceil, floor
 import numpy as np
 from enum import Enum
 from pynput.keyboard import Key, KeyCode, Listener
@@ -9,7 +10,11 @@ from random import choice
 BOARD_WIDTH = 10
 BOARD_HEIGHT = 20
 
-clear = lambda: os.system('cls') # windows only, os.system('clear') on linux
+#os.system('')      # any call to os.system() is necessary for the renderer to work correctly
+os.system('cls')    # windows only, os.system('clear') on linux
+
+def overwrite(lines):
+    print("\x1B[" + str(lines) + "F")
 
 class Direction(Enum):
     UP = 0
@@ -73,19 +78,44 @@ class Board(): # TODO maybe extend numpy array?
             self.gravity.restart()
 
     def render(self):
+        CURRENT_BLOCK_DISPLAY_HEIGHT = 6
+        BOARD_DISPLAY_WIDTH = str(self.array[0]).__len__()
+        BOARD_DISPLAY_HEIGHT = self.array.shape[0]
+        GAME_INFO_DISPLAY_HEIGHT = CURRENT_BLOCK_DISPLAY_HEIGHT + 3     # initial line + score + input line
+
+        result = ""
+
+        # temporarily add player's block to board
         display_array = np.copy(self.array)
         x0 = self.block.pos[0]
         y0 = self.block.pos[1]
         for i in range(self.block.array.shape[0]):
             for j in range(self.block.array.shape[1]):
                 display_array[y0 + i][x0 + j] += self.block.array[i][j]
-        clear()
+
+
+        # render game info
         if self.gameover:
-            print("### GAME OVER ###")
-        print("Score: ", self.score.points)
-        print(display_array)
-        print("\n")
-        print(self.block.array)
+            result += "### GAME OVER ###\n"
+        result += "Score: " + str(self.score.points) + "\n"
+
+        # render current block
+        block_display_vpadding = CURRENT_BLOCK_DISPLAY_HEIGHT - self.block.array.shape[0]
+        block_display_hpadding = ceil(BOARD_DISPLAY_WIDTH/2) - self.block.array.shape[1]
+        for i in range( floor(block_display_vpadding/2) ):
+            result += " "*BOARD_DISPLAY_WIDTH + "\n"
+        for i in range(self.block.array.shape[0]):
+            result += " "*block_display_hpadding + str(self.block.array[i]) + " "*block_display_hpadding + "\n"
+        for i in range( ceil(block_display_vpadding/2) ):
+            result += " "*BOARD_DISPLAY_WIDTH + "\n"
+
+        # render current board
+        for i in range(display_array.shape[0]):
+            result += str(display_array[i]) + "\n"
+
+        # reposition cursor
+        overwrite(result.count('\n') + 2)   # +2 for initial empty line and console input line
+        print(result)
         
 class Block: # TODO maybe extend numpy array?
     def __init__(self, array: np.ndarray, board: Board):
