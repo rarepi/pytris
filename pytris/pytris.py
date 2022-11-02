@@ -4,11 +4,11 @@ import numpy as np
 from enum import Enum
 from pynput.keyboard import Key, KeyCode, Listener
 import os
-from RepeatedTimer import RepeatedTimer
+from .RepeatedTimer import RepeatedTimer
 from random import choice
 
-BOARD_WIDTH = 10
-BOARD_HEIGHT = 20
+DEFAULT_BOARD_WIDTH = 10
+DEFAULT_BOARD_HEIGHT = 20
 INITIAL_SPEED = 1
 MAX_SPEED = 3
 
@@ -54,7 +54,9 @@ class Score():
             self.points += self.scoring[amount]
 
 class Board(): # TODO maybe extend numpy array?
-    def __init__(self, width: int, height: int):
+    def __init__(self, width = DEFAULT_BOARD_WIDTH, height = DEFAULT_BOARD_HEIGHT):
+        if width < 4 or height < 4:
+            raise ValueError("Invalid Board dimensions: {}, {}".format(width, height))
         self.width = width
         self.height = height
         self.array = np.zeros((height, width))
@@ -64,6 +66,10 @@ class Board(): # TODO maybe extend numpy array?
         self.score = Score()
         self.set_gravity(INITIAL_SPEED)
         self.pause_renderer = False
+
+    def start(self):
+        self.render()
+        self.gravity.start()
 
     def set_gravity(self, g):
         if g > MAX_SPEED:
@@ -248,7 +254,7 @@ class Block: # TODO maybe extend numpy array?
             return False
 
 def main():
-    board = Board(BOARD_WIDTH, BOARD_HEIGHT)
+    board = Board()
 
     def on_press(key):
         None
@@ -276,11 +282,11 @@ def main():
                 case _:
                     None
 
+    board.start()
+
     # Collect events until released
     with Listener( on_press=on_press, on_release=on_release ) as listener:
         listener.join()
-
-    board.gravity.start()
 
 
 if __name__ == '__main__':

@@ -11,7 +11,6 @@ class RepeatedTimer(object):
     self.is_running = False
     self.is_stopped = False
     self.next_call = time.time()
-    self.start()
 
   def _run(self):
     self.is_running = False
