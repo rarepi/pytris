@@ -63,7 +63,7 @@ class Score():
 
 class Board():
     def __init__(self, width = DEFAULT_BOARD_WIDTH, height = DEFAULT_BOARD_HEIGHT):
-        if not type(width) is int or not type(height) is int:
+        if not (type(width) is int and type(height) is int):
             raise TypeError("Invalid Board dimensions: {} {}".format(width, height))
         if width < MIN_BOARD_DIMENSION or height < MIN_BOARD_DIMENSION:
             raise ValueError("Invalid Board dimensions: {0}, {1}\nMinimum values are: {2}, {2}".format(width, height, MIN_BOARD_DIMENSION))
@@ -111,13 +111,13 @@ class Board():
         x0 = self.block.pos[0]
         y0 = self.block.pos[1]
         # write block onto board
-        for i in range(self.block.array.shape[0]):
-            for j in range(self.block.array.shape[1]):
+        for i in range(self.block.height):
+            for j in range(self.block.width):
                 self.array[y0 + i][x0 + j] += self.block.array[i][j]
 
         # another vertical loop to check for finished rows
         rows_completed = 0
-        for i in range(self.block.array.shape[0]):
+        for i in range(self.block.height):
             if not self.gameover and np.all(self.array[y0 + i] == 1):
                 self.remove_row(y0 + i)
                 rows_completed += 1
@@ -163,8 +163,8 @@ class Board():
         display_array = np.copy(self.array)
         x0 = self.block.pos[0]
         y0 = self.block.pos[1]
-        for i in range(self.block.array.shape[0]):
-            for j in range(self.block.array.shape[1]):
+        for i in range(self.block.height):
+            for j in range(self.block.width):
                 display_array[y0 + i][x0 + j] += self.block.array[i][j]
 
         # render game info
@@ -174,11 +174,11 @@ class Board():
         result += "Speed: " + "%.2f" % (1 / self.gravity.interval) + " bps\n"
 
         # render upcoming block
-        block_display_vpadding = CURRENT_BLOCK_DISPLAY_HEIGHT - self.block_next.array.shape[0]
-        block_display_hpadding = ceil(BOARD_DISPLAY_WIDTH/2) - self.block_next.array.shape[1]
+        block_display_vpadding = CURRENT_BLOCK_DISPLAY_HEIGHT - self.block_next.height
+        block_display_hpadding = ceil(BOARD_DISPLAY_WIDTH/2) - self.block_next.width
         for i in range( floor(block_display_vpadding/2) ):
             result += " "*BOARD_DISPLAY_WIDTH + "\n"
-        for i in range(self.block_next.array.shape[0]):
+        for i in range(self.block_next.height):
             result += " "*block_display_hpadding + format_array_str(self.block_next.array[i]) + " "*block_display_hpadding + "\n"
         for i in range( ceil(block_display_vpadding/2) ):
             result += " "*BOARD_DISPLAY_WIDTH + "\n"
@@ -191,11 +191,19 @@ class Board():
         overwrite(result.count('\n') + 2)   # +2 for initial empty line and console input line
         print(result)
         
-class Block: # TODO maybe extend numpy array?
+class Block:
     def __init__(self, array: np.ndarray, board: Board):
         self.array = array
         self.board = board
-        self.pos = [round(self.array.shape[0]/2)-round(self.array.shape[1]/2), 0]    # x,y
+        self.pos = [round(self.board.width/2)-round(self.width/2), 0]    # x,y
+
+    @property
+    def height(self):
+        return self.array.shape[0]
+
+    @property
+    def width(self):
+        return self.array.shape[1]
 
     def rotate(self):
         if self.board.gameover:
@@ -220,10 +228,10 @@ class Block: # TODO maybe extend numpy array?
             case Direction.UP:
                 return # not a valid Tetris move
             case Direction.RIGHT:
-                if self.pos[0] + self.array.shape[1] < self.board.width and not self.detect_collision(direction):
+                if self.pos[0] + self.width < self.board.width and not self.detect_collision(direction):
                     self.pos[0] = self.pos[0] + 1
             case Direction.DOWN:
-                if self.pos[1] + self.array.shape[0] < self.board.height and not self.detect_collision(direction):
+                if self.pos[1] + self.height < self.board.height and not self.detect_collision(direction):
                     self.pos[1] = self.pos[1] + 1
                 else:
                     self.board.finalize_block()
@@ -259,7 +267,7 @@ class Block: # TODO maybe extend numpy array?
             case _:
                 None
 
-        if x1 > self.board.array.shape[1] or y1 > self.board.array.shape[0]:
+        if x1 > self.board.width or y1 > self.board.height:
             return True
 
         try:
