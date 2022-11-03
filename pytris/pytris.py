@@ -35,6 +35,8 @@ Block_Type = {
     "T": np.array([[0, 1, 0], [1, 1, 1]]),
     "Z": np.array([[1, 1, 0], [0, 1, 1]])
 }
+# calculate minimum board dimension by determining the largest block dimension
+MIN_BOARD_DIMENSION = max([max(x.shape[0], x.shape[1]) for x in Block_Type.values()])
 
 def get_random_block_type():
     return choice(list(Block_Type.values()))
@@ -55,7 +57,7 @@ class Score():
 
 class Board(): # TODO maybe extend numpy array?
     def __init__(self, width = DEFAULT_BOARD_WIDTH, height = DEFAULT_BOARD_HEIGHT):
-        if width < 4 or height < 4:
+        if width < MIN_BOARD_DIMENSION or height < MIN_BOARD_DIMENSION:
             raise ValueError("Invalid Board dimensions: {}, {}".format(width, height))
         self.width = width
         self.height = height
