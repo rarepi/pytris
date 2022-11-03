@@ -73,10 +73,10 @@ class Board():
         self.array = np.zeros((height, width))
         self.block = Block(get_random_block_type(), self)
         self.block_next = Block(get_random_block_type(), self)
-        self.gameover = False
-        self.score = Score()
         self.set_gravity(INITIAL_SPEED)
-        self.pause_renderer = False
+        self.score = Score()
+        self.pause_renderer = True
+        self.gameover = False
 
     @property
     def height(self):
@@ -87,8 +87,18 @@ class Board():
         return self.array.shape[1]
 
     def start(self):
+        self.pause_renderer = False
         self.render()
         self.gravity.start()
+
+    def pause(self):
+        self.pause_renderer = True
+        self.gravity.stop()
+
+    def resume(self):
+        self.pause_renderer = False
+        self.render()
+        self.gravity.restart()
 
     def set_gravity(self, g):
         if g > MAX_SPEED:
