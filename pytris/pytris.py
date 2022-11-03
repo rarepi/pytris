@@ -7,8 +7,11 @@ import os
 from .RepeatedTimer import RepeatedTimer
 from random import choice
 
-DEFAULT_BOARD_WIDTH = 10
-DEFAULT_BOARD_HEIGHT = 20
+MAX_BOARD_WIDTH = os.get_terminal_size().columns - 4 # adds some buffer for board border
+MAX_BOARD_HEIGHT = os.get_terminal_size().lines - 11 # adds some buffer for our gameinfo display
+MIN_BOARD_DIMENSION = None # defined below - dynamically using Block_Type dict values
+DEFAULT_BOARD_WIDTH = min(10, MAX_BOARD_WIDTH)
+DEFAULT_BOARD_HEIGHT = min(20, MAX_BOARD_HEIGHT)
 INITIAL_SPEED = 1
 MAX_SPEED = 3
 
@@ -37,6 +40,8 @@ Block_Type = {
 }
 # calculate minimum board dimension by determining the largest block dimension
 MIN_BOARD_DIMENSION = max([max(x.shape[0], x.shape[1]) for x in Block_Type.values()])
+if MIN_BOARD_DIMENSION > MAX_BOARD_WIDTH or MIN_BOARD_DIMENSION > MAX_BOARD_HEIGHT:
+    raise ValueError("Failed to determine valid game board sizes. Make sure your terminal can display the estimated minimum character dimensions of {0}x{0}".format(MIN_BOARD_DIMENSION))
 
 def get_random_block_type():
     return choice(list(Block_Type.values()))
@@ -58,7 +63,9 @@ class Score():
 class Board(): # TODO maybe extend numpy array?
     def __init__(self, width = DEFAULT_BOARD_WIDTH, height = DEFAULT_BOARD_HEIGHT):
         if width < MIN_BOARD_DIMENSION or height < MIN_BOARD_DIMENSION:
-            raise ValueError("Invalid Board dimensions: {}, {}".format(width, height))
+            raise ValueError("Invalid Board dimensions: {0}, {1}\nMinimum values are: {2}, {2}".format(width, height, MIN_BOARD_DIMENSION))
+        if width > MAX_BOARD_WIDTH or height > MAX_BOARD_HEIGHT:
+            raise ValueError("Invalid Board dimensions for current windows size: {}, {}\nCurrent window size can only display: {}, {}".format(width, height, MAX_BOARD_WIDTH, MAX_BOARD_HEIGHT))
         self.width = width
         self.height = height
         self.array = np.zeros((height, width))
