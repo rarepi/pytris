@@ -9,16 +9,17 @@ from random import choice
 
 MAX_BOARD_WIDTH = os.get_terminal_size().columns - 4 # adds some buffer for board border
 MAX_BOARD_HEIGHT = os.get_terminal_size().lines - 11 # adds some buffer for our gameinfo display
-MIN_BOARD_DIMENSION = None # defined below - dynamically using Block_Type dict values
+MIN_BOARD_DIMENSION: int # defined dynamically using Block_Type dict values
 DEFAULT_BOARD_WIDTH = min(10, MAX_BOARD_WIDTH)
 DEFAULT_BOARD_HEIGHT = min(20, MAX_BOARD_HEIGHT)
 INITIAL_SPEED = 1
 MAX_SPEED = 3
 
-
-clear = lambda: os.system('cls')    # windows only, os.system('clear') on linux
-clear()
-#os.system('')      # any call to os.system() is necessary for the renderer to work correctly
+def clear_console():
+    if os.name == 'nt': # windows
+        os.system('cls')
+    elif os.name == 'posix': # unix
+        os.system('clear')
 
 def overwrite(lines):
     print("\x1B[" + str(lines) + "F")
@@ -263,6 +264,9 @@ class Block: # TODO maybe extend numpy array?
             return False
 
 def main():
+    #os.system('')      # any call to os.system() is necessary for the renderer to work correctly
+    clear_console()             # includes os.system() call
+
     board = Board()
 
     def on_press(key):
@@ -286,7 +290,7 @@ def main():
                 case 'r':
                     board.block.rotate()
                 case 'c':
-                    clear()
+                    clear_console()
                     board.render()
                 case _:
                     None
