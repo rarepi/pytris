@@ -61,14 +61,15 @@ class Score():
         if amount in self.scoring:
             self.points += self.scoring[amount]
 
-class Board(): # TODO maybe extend numpy array?
+class Board():
     def __init__(self, width = DEFAULT_BOARD_WIDTH, height = DEFAULT_BOARD_HEIGHT):
+        if not type(width) is int or not type(height) is int:
+            raise TypeError("Invalid Board dimensions: {} {}".format(width, height))
         if width < MIN_BOARD_DIMENSION or height < MIN_BOARD_DIMENSION:
             raise ValueError("Invalid Board dimensions: {0}, {1}\nMinimum values are: {2}, {2}".format(width, height, MIN_BOARD_DIMENSION))
         if width > MAX_BOARD_WIDTH or height > MAX_BOARD_HEIGHT:
             raise ValueError("Invalid Board dimensions for current windows size: {}, {}\nCurrent window size can only display: {}, {}".format(width, height, MAX_BOARD_WIDTH, MAX_BOARD_HEIGHT))
-        self.width = width
-        self.height = height
+            
         self.array = np.zeros((height, width))
         self.block = Block(get_random_block_type(), self)
         self.block_next = Block(get_random_block_type(), self)
@@ -77,6 +78,14 @@ class Board(): # TODO maybe extend numpy array?
         self.set_gravity(INITIAL_SPEED)
         self.pause_renderer = False
 
+    @property
+    def height(self):
+        return self.array.shape[0]
+
+    @property
+    def width(self):
+        return self.array.shape[1]
+
     def start(self):
         self.render()
         self.gravity.start()
@@ -84,9 +93,9 @@ class Board(): # TODO maybe extend numpy array?
     def set_gravity(self, g):
         if g > MAX_SPEED:
             g = MAX_SPEED
-        self.gravity = RepeatedTimer(1 / g, self.move, Direction.DOWN)
+        self.gravity = RepeatedTimer(1 / g, self.move_block, Direction.DOWN)
 
-    def move(self, direction):
+    def move_block(self, direction):
         self.block.move(direction)
 
     def remove_row(self, idx):
@@ -186,7 +195,7 @@ class Block: # TODO maybe extend numpy array?
     def __init__(self, array: np.ndarray, board: Board):
         self.array = array
         self.board = board
-        self.pos = [round(board.width/2)-round(self.array.shape[1]/2), 0]    # x,y
+        self.pos = [round(self.array.shape[0]/2)-round(self.array.shape[1]/2), 0]    # x,y
 
     def rotate(self):
         if self.board.gameover:
