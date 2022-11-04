@@ -1,11 +1,11 @@
+import copy
 import unittest
 import pytris
-import os
-import sys
+import numpy as np
 
 class TestBoard(unittest.TestCase):
     pytris.Board.render = lambda self: None  # disable renderer
-    def test_negative_dimensions(self):
+    def test_constructor_negative_dimensions(self):
         """
         Test negative dimensions for Board
         """
@@ -13,7 +13,7 @@ class TestBoard(unittest.TestCase):
         self.assertRaises(ValueError, pytris.Board, 10, -1)
         self.assertRaises(ValueError, pytris.Board, -1, -1)
 
-    def test_types_dimensions(self):
+    def test_constructor_types_dimensions(self):
         """
         Test invalid types as dimensions for Board
         """
@@ -24,7 +24,7 @@ class TestBoard(unittest.TestCase):
         self.assertRaises(TypeError, pytris.Board, 10, True)
         self.assertRaises(TypeError, pytris.Board, 10, 10.5)
     
-    def test_board_constructor(self):
+    def test_constructor(self):
         """
         Test Board constructor
         """
@@ -64,7 +64,7 @@ class TestBoard(unittest.TestCase):
         self.assertGreater(board.width, 0)
         self.assertGreater(board.height, 0)
 
-    def test_board_start(self):
+    def test_start(self):
         """
         Test Board game start
         """
@@ -79,6 +79,51 @@ class TestBoard(unittest.TestCase):
         self.assertFalse(board.pause_renderer)
         self.assertFalse(board.gameover)
         board.pause() # so gravity doesn't hang the test
+
+    def test_dimensions_after_drop_row(self):
+        """
+        Test if dropping a row keeps board dimensions
+        """
+        board = pytris.Board()
+        initial_height = board.height
+        initial_width = board.width
+
+        def asserts():
+            self.assertEqual(board.width, initial_width)  # board height must not change
+            self.assertEqual(board.height, initial_height)  # board width must not change
+
+        # drop bottom row
+        board.drop_row(board.height-1)
+        asserts()
+        # drop bottom row using negative indices
+        board.drop_row(-1)
+        asserts()
+        # drop first row
+        board.drop_row(0)
+        asserts()
+        # drop inbetween row
+        board.drop_row(2)
+        asserts()
+        # drop out of bounds row
+        self.assertRaises(IndexError, board.drop_row, board.height)
+
+    def test_drop_row(self):
+        """
+        Test if dropping a row removes the row and "pulls down" the rows above
+        """
+        board = pytris.Board()
+
+        # fill board with randomly filled rows
+        board.array = np.random.randint(0,2,(board.height,board.width))
+        array_initial = np.copy(board.array)
+        
+        board.drop_row(-1)  # drop bottom row
+
+        self.assertTrue(np.all(board.array[0] == 0))    # top row must be empty
+        for i in range(1, board.height-1):
+            self.assertTrue(np.array_equal(board.array[i], array_initial[i-1]))   # every row after the first must be equal to the one previously above it
+
+
 
 if __name__ == '__main__':
     unittest.main()
