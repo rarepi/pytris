@@ -7,11 +7,11 @@ import os
 from .RepeatedTimer import RepeatedTimer
 from random import choice
 
-MAX_BOARD_WIDTH = os.get_terminal_size().columns - 4 # adds some buffer for board border
-MAX_BOARD_HEIGHT = os.get_terminal_size().lines - 11 # adds some buffer for our gameinfo display
+MAX_BOARD_WIDTH = 50
+MAX_BOARD_HEIGHT = 50
 MIN_BOARD_DIMENSION: int # defined dynamically using Block_Type dict values
-DEFAULT_BOARD_WIDTH = min(10, MAX_BOARD_WIDTH)
-DEFAULT_BOARD_HEIGHT = min(20, MAX_BOARD_HEIGHT)
+DEFAULT_BOARD_WIDTH = 10
+DEFAULT_BOARD_HEIGHT = 20
 INITIAL_SPEED = 1
 MAX_SPEED = 3
 
@@ -68,7 +68,7 @@ class Board():
         if width < MIN_BOARD_DIMENSION or height < MIN_BOARD_DIMENSION:
             raise ValueError("Invalid Board dimensions: {0}, {1}\nMinimum values are: {2}, {2}".format(width, height, MIN_BOARD_DIMENSION))
         if width > MAX_BOARD_WIDTH or height > MAX_BOARD_HEIGHT:
-            raise ValueError("Invalid Board dimensions for current windows size: {}, {}\nCurrent window size can only display: {}, {}".format(width, height, MAX_BOARD_WIDTH, MAX_BOARD_HEIGHT))
+            raise ValueError("Invalid Board dimensions: {}, {}\nMaximum values are: {}, {}".format(width, height, MAX_BOARD_WIDTH, MAX_BOARD_HEIGHT))
             
         self.array = np.zeros((height, width))
         self.block = Block(get_random_block_type(), self)
@@ -108,7 +108,7 @@ class Board():
     def move_block(self, direction):
         self.block.move(direction)
 
-    def remove_row(self, idx):
+    def drop_row(self, idx):
         self.array = np.delete(self.array, idx, 0) # remove row
         self.array = np.insert(self.array, 0, 0, 0) # add empty row at the top
         return
@@ -129,7 +129,7 @@ class Board():
         rows_completed = 0
         for i in range(self.block.height):
             if not self.gameover and np.all(self.array[y0 + i] == 1):
-                self.remove_row(y0 + i)
+                self.drop_row(y0 + i)
                 rows_completed += 1
         if rows_completed > 0:
             self.score.rows_completed(rows_completed)
