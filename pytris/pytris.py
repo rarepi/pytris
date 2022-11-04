@@ -113,36 +113,6 @@ class Board():
         self.array = np.insert(self.array, 0, 0, 0) # add empty row at the top
         return
 
-    def finalize_block(self):
-        if self.block.detect_collision(None):
-            self.gameover = True
-
-        self.gravity.stop()
-        x0 = self.block.pos[0]
-        y0 = self.block.pos[1]
-        # write block onto board
-        for i in range(self.block.height):
-            for j in range(self.block.width):
-                self.array[y0 + i][x0 + j] += self.block.array[i][j]
-
-        # another vertical loop to check for finished rows
-        rows_completed = 0
-        for i in range(self.block.height):
-            if not self.gameover and np.all(self.array[y0 + i] == 1):
-                self.drop_row(y0 + i)
-                rows_completed += 1
-        if rows_completed > 0:
-            self.score.rows_completed(rows_completed)
-            self.set_gravity(INITIAL_SPEED + self.score.points * 0.00033)
-
-        if not self.gameover:
-            self.block = self.block_next
-            self.block_next = Block(get_random_block_type(), self)
-            # check if new block is stuck already
-            if self.block.detect_collision(None):
-                self.finalize_block()
-            self.gravity.restart()
-
     def render(self):
         if self.pause_renderer:
             return
@@ -244,11 +214,41 @@ class Block:
                 if self.pos[1] + self.height < self.board.height and not self.detect_collision(direction):
                     self.pos[1] = self.pos[1] + 1
                 else:
-                    self.board.finalize_block()
+                    self.finalize()
             case Direction.LEFT:
                 if self.pos[0] > 0 and not self.detect_collision(direction):
                     self.pos[0] = self.pos[0] - 1
         self.board.render()
+
+    def finalize(self):
+        if self.detect_collision(None):
+            self.board.gameover = True
+
+        self.board.gravity.stop()
+        x0 = self.pos[0]
+        y0 = self.pos[1]
+        # write block onto board
+        for i in range(self.height):
+            for j in range(self.width):
+                self.board.array[y0 + i][x0 + j] += self.array[i][j]
+
+        # another vertical loop to check for finished rows
+        rows_completed = 0
+        for i in range(self.height):
+            if not self.board.gameover and np.all(self.board.array[y0 + i] == 1):
+                self.board.drop_row(y0 + i)
+                rows_completed += 1
+        if rows_completed > 0:
+            self.board.score.rows_completed(rows_completed)
+            self.board.set_gravity(INITIAL_SPEED + self.board.score.points * 0.00033)
+
+        if not self.board.gameover:
+            if not self.board.block_next.detect_collision(None):
+                self.board.block = self.board.block_next
+                self.board.block_next = Block(get_random_block_type(), self.board)
+                self.board.gravity.restart()
+            else: # next block is stuck already
+                self.board.block_next.finalize()
 
     def detect_collision(self, move_direction, rotate = False):
         if rotate:
