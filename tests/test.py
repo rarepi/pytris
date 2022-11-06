@@ -36,7 +36,7 @@ class TestBoard(unittest.TestCase):
             self.assertIsInstance(board.height, int)
             self.assertIsInstance(board.array, pytris.np.ndarray)
             self.assertIsInstance(board.block_next, pytris.Block)
-            self.assertIsInstance(board.gravity, pytris.RepeatedTimer)
+            self.assertIsInstance(board.block.gravity, pytris.RepeatedTimer)
             self.assertIsInstance(board.score, pytris.Score)
 
         # empty width
@@ -75,15 +75,15 @@ class TestBoard(unittest.TestCase):
         board.start()
         self.assertFalse(board.pause_renderer)
         self.assertFalse(board.gameover)
-        self.assertTrue(board.gravity.state is pytris.RepeatedTimer.State.RUNNING)
+        self.assertTrue(board.block.gravity.state is pytris.RepeatedTimer.State.RUNNING)
         board.pause()
         self.assertTrue(board.pause_renderer)
         self.assertFalse(board.gameover)
-        self.assertTrue(board.gravity.state is pytris.RepeatedTimer.State.STOPPED)
+        self.assertTrue(board.block.gravity.state is pytris.RepeatedTimer.State.STOPPED)
         board.resume()
         self.assertFalse(board.pause_renderer)
         self.assertFalse(board.gameover)
-        self.assertTrue(board.gravity.state is pytris.RepeatedTimer.State.RUNNING)
+        self.assertTrue(board.block.gravity.state is pytris.RepeatedTimer.State.RUNNING)
         board.pause() # so gravity doesn't hang the test
 
     def test_drop_row_dimension(self):
@@ -129,7 +129,13 @@ class TestBoard(unittest.TestCase):
         for i in range(1, board.height-1):
             self.assertTrue(np.array_equal(board.array[i], array_initial[i-1]))   # every row after the first must be equal to the one previously above it
 
-
+class TestBlock(unittest.TestCase):
+    pytris.Board.render = lambda self: None  # disable renderer
+    def test_constructor(self):
+        """
+        Test
+        """
+        pass
 
 if __name__ == '__main__':
     unittest.main()

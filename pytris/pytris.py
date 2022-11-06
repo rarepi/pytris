@@ -15,13 +15,13 @@ DEFAULT_BOARD_HEIGHT = 20
 INITIAL_SPEED = 1
 MAX_SPEED = 3
 
-def clear_console():
+def console_clear():
     if os.name == 'nt': # windows
         os.system('cls')
     elif os.name == 'posix': # unix
         os.system('clear')
 
-def overwrite(lines):
+def console_overwrite(lines):
     print("\x1B[" + str(lines) + "F")
 
 class Direction(Enum):
@@ -73,7 +73,7 @@ class Board():
         self.array = np.zeros((height, width))
         self.block = Block(get_random_block_type(), self)
         self.block_next = Block(get_random_block_type(), self)
-        self.set_gravity(INITIAL_SPEED)
+        self.apply_gravity(INITIAL_SPEED)
         self.score = Score()
         self.pause_renderer = True
         self.gameover = False
@@ -89,22 +89,19 @@ class Board():
     def start(self):
         self.pause_renderer = False
         self.render()
-        self.gravity.start()
+        self.block.gravity.start()
 
     def pause(self):
         self.pause_renderer = True
-        self.gravity.stop()
+        self.block.gravity.stop()
 
     def resume(self):
         self.start()
 
-    def set_gravity(self, g):
+    def apply_gravity(self, g):
         if g > MAX_SPEED:
             g = MAX_SPEED
-        self.gravity = RepeatedTimer(1 / g, self.move_block, Direction.DOWN)
-
-    def move_block(self, direction):
-        self.block.move(direction)
+        self.block.gravity = RepeatedTimer(1 / g, self.block.move, Direction.DOWN)
 
     def drop_row(self, idx):
         self.array = np.delete(self.array, idx, 0) # remove row
@@ -149,7 +146,7 @@ class Board():
         if self.gameover:
             result += "### GAME OVER ###\n"
         result += "Score: " + str(self.score.points) + "\n"
-        result += "Speed: " + "%.2f" % (1 / self.gravity.interval) + " bps\n"
+        result += "Speed: " + "%.2f" % (1 / self.block.gravity.interval) + " bps\n"
 
         # render upcoming block
         block_display_vpadding = CURRENT_BLOCK_DISPLAY_HEIGHT - self.block_next.height
@@ -166,7 +163,7 @@ class Board():
             result += format_array_str(display_array[i]) + "\n"
 
         # reposition cursor
-        overwrite(result.count('\n') + 2)   # +2 for initial empty line and console input line
+        console_overwrite(result.count('\n') + 2)   # +2 for initial empty line and console input line
         print(result)
         
 class Block:
@@ -174,6 +171,7 @@ class Block:
         self.array = array
         self.board = board
         self.pos = [round(self.board.width/2)-round(self.width/2), 0]    # x,y
+        self.gravity: RepeatedTimer
 
     @property
     def height(self):
@@ -238,7 +236,7 @@ class Block:
                 rows_completed += 1
         if rows_completed > 0:
             self.board.score.rows_completed(rows_completed)
-            self.board.set_gravity(INITIAL_SPEED + self.board.score.points * 0.00033)
+            self.board.apply_gravity(INITIAL_SPEED + self.board.score.points * 0.00033)
 
         if not self.board.gameover:
             if not self.board.block_next.detect_collision(None):
@@ -246,6 +244,7 @@ class Block:
                 self.board.block_next = Block(get_random_block_type(), self.board)
                 self.board.gravity.start()
             else: # next block is stuck already
+                self.board.gameover = True
                 self.board.block_next.finalize()
 
     def detect_collision(self, move_direction, rotate = False):
@@ -280,17 +279,16 @@ class Block:
 
         try:
             overlap = block_array + self.board.array[y0:y1, x0:x1]
+            if np.any(overlap[:, :] > 1):
+                return True
+            else:
+                return False
         except ValueError:
             return True
 
-        if np.any(overlap[:, :] > 1):
-            return True
-        else:
-            return False
-
 def main():
     #os.system('')      # any call to os.system() is necessary for the renderer to work correctly
-    clear_console()             # includes os.system() call
+    console_clear()             # includes os.system() call
 
     board = Board()
 
@@ -315,7 +313,7 @@ def main():
                 case 'r':
                     board.block.rotate()
                 case 'c':
-                    clear_console()
+                    console_clear()
                     board.render()
                 case _:
                     None
