@@ -96,9 +96,7 @@ class Board():
         self.gravity.stop()
 
     def resume(self):
-        self.pause_renderer = False
-        self.render()
-        self.gravity.restart()
+        self.start()
 
     def set_gravity(self, g):
         if g > MAX_SPEED:
@@ -246,7 +244,7 @@ class Block:
             if not self.board.block_next.detect_collision(None):
                 self.board.block = self.board.block_next
                 self.board.block_next = Block(get_random_block_type(), self.board)
-                self.board.gravity.restart()
+                self.board.gravity.start()
             else: # next block is stuck already
                 self.board.block_next.finalize()
 

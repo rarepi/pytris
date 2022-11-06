@@ -3,6 +3,9 @@ import unittest
 import pytris
 import numpy as np
 
+def generate_random_board(width, height):
+    return np.random.randint(0,2,(height,width))
+
 class TestBoard(unittest.TestCase):
     pytris.Board.render = lambda self: None  # disable renderer
     def test_constructor_negative_dimensions(self):
@@ -64,23 +67,26 @@ class TestBoard(unittest.TestCase):
         self.assertGreater(board.width, 0)
         self.assertGreater(board.height, 0)
 
-    def test_start(self):
+    def test_start_pause_resume(self):
         """
-        Test Board game start
+        Test start, pause and resume methods
         """
         board = pytris.Board()
         board.start()
         self.assertFalse(board.pause_renderer)
         self.assertFalse(board.gameover)
+        self.assertTrue(board.gravity.state is pytris.RepeatedTimer.State.RUNNING)
         board.pause()
         self.assertTrue(board.pause_renderer)
         self.assertFalse(board.gameover)
+        self.assertTrue(board.gravity.state is pytris.RepeatedTimer.State.STOPPED)
         board.resume()
         self.assertFalse(board.pause_renderer)
         self.assertFalse(board.gameover)
+        self.assertTrue(board.gravity.state is pytris.RepeatedTimer.State.RUNNING)
         board.pause() # so gravity doesn't hang the test
 
-    def test_dimensions_after_drop_row(self):
+    def test_drop_row_dimension(self):
         """
         Test if dropping a row keeps board dimensions
         """
@@ -114,7 +120,7 @@ class TestBoard(unittest.TestCase):
         board = pytris.Board()
 
         # fill board with randomly filled rows
-        board.array = np.random.randint(0,2,(board.height,board.width))
+        board.array = generate_random_board(board.height,board.width)
         array_initial = np.copy(board.array)
         
         board.drop_row(-1)  # drop bottom row
