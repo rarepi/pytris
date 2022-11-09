@@ -7,8 +7,7 @@ class RepeatedTimer(object):
         INITIATED = 0,
         RUNNING = 1,
         PAUSED = 2,
-        STOPPED = 3,
-        FINISHED = 4
+        STOPPED = 3
 
     def __init__(self, interval: float, function, *args, **kwargs):
         self._timer = None
@@ -20,7 +19,7 @@ class RepeatedTimer(object):
         self.next_call = time.time()
 
     def _run(self):
-        self.state = self.State.FINISHED
+        self.state = self.State.STOPPED
         self.start()
         self.function(*self.args, **self.kwargs)
 
@@ -47,5 +46,11 @@ class RepeatedTimer(object):
             self.next_call += time.time() - self.pause_time - self.interval
         self.start()
 
+    def is_running(self):
+        return self.state is self.State.RUNNING
+
     def is_paused(self):
         return self.state is self.State.PAUSED
+
+    def is_stopped(self):
+        return self.state is self.State.STOPPED
