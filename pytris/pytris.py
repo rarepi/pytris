@@ -71,10 +71,9 @@ class Board():
             raise ValueError("Invalid Board dimensions: {}, {}\nMaximum values are: {}, {}".format(width, height, MAX_BOARD_WIDTH, MAX_BOARD_HEIGHT))
             
         self.array = np.zeros((height, width))
+        self.score = Score()
         self.block = Block(get_random_block_type(), self)
         self.block_next = Block(get_random_block_type(), self)
-        self.apply_gravity(INITIAL_SPEED)
-        self.score = Score()
         self.pause_renderer = True
         self.gameover = False
 
@@ -86,27 +85,46 @@ class Board():
     def width(self):
         return self.array.shape[1]
 
+    @property
+    def block(self):
+        return self._block
+
+    @block.setter
+    def block(self, block: 'Block'):
+        self._block = block
+        self.apply_gravity()
+
     def start(self):
         self.pause_renderer = False
         self.render()
-        self.block.gravity.start()
+        self.block.unfreeze()
 
     def pause(self):
         self.pause_renderer = True
-        self.block.gravity.stop()
+        self.block.freeze()
 
     def resume(self):
         self.start()
 
-    def apply_gravity(self, g):
+    def apply_gravity(self):
+        g = INITIAL_SPEED + self.score.points * 0.00033
         if g > MAX_SPEED:
             g = MAX_SPEED
-        self.block.gravity = RepeatedTimer(1 / g, self.block.move, Direction.DOWN)
+        self.block.gravity = g
 
     def drop_row(self, idx):
         self.array = np.delete(self.array, idx, 0) # remove row
         self.array = np.insert(self.array, 0, 0, 0) # add empty row at the top
-        return
+
+    def finish_completed_rows(self, start, stop):
+        rows_completed = 0
+        for i in range(start, stop):
+            if not self.gameover and np.all(self.array[i] == 1):
+                self.drop_row(i)
+                rows_completed += 1
+        if rows_completed > 0:
+            self.score.rows_completed(rows_completed)
+            self.apply_gravity()
 
     def render(self):
         if self.pause_renderer:
@@ -146,7 +164,7 @@ class Board():
         if self.gameover:
             result += "### GAME OVER ###\n"
         result += "Score: " + str(self.score.points) + "\n"
-        result += "Speed: " + "%.2f" % (1 / self.block.gravity.interval) + " bps\n"
+        result += "Speed: " + "%.2f" % self.block.gravity + " bps\n"
 
         # render upcoming block
         block_display_vpadding = CURRENT_BLOCK_DISPLAY_HEIGHT - self.block_next.height
@@ -170,8 +188,9 @@ class Block:
     def __init__(self, array: np.ndarray, board: Board):
         self.array = array
         self.board = board
-        self.pos = [round(self.board.width/2)-round(self.width/2), 0]    # x,y
-        self.gravity: RepeatedTimer
+        self.pos = [self.board.width//2 - self.width//2, 0]    # x,y
+        self._gravity: RepeatedTimer
+        self.gravity: float
 
     @property
     def height(self):
@@ -180,6 +199,22 @@ class Block:
     @property
     def width(self):
         return self.array.shape[1]
+
+    @property
+    def gravity(self):
+        return (1 / self._gravity.interval)
+
+    @gravity.setter
+    def gravity(self, g: float):
+        self._gravity = RepeatedTimer(1 / g, self.move, Direction.DOWN)
+
+    def freeze(self):
+        if self._gravity is not None:
+            self._gravity.stop()
+
+    def unfreeze(self):
+        if self._gravity is not None:
+            self._gravity.start()
 
     def rotate(self):
         if self.board.gameover:
@@ -220,7 +255,7 @@ class Block:
         if self.detect_collision(None):
             self.board.gameover = True
 
-        self.board.gravity.stop()
+        self.freeze()
         x0 = self.pos[0]
         y0 = self.pos[1]
         # write block onto board
@@ -228,21 +263,15 @@ class Block:
             for j in range(self.width):
                 self.board.array[y0 + i][x0 + j] += self.array[i][j]
 
-        # another vertical loop to check for finished rows
-        rows_completed = 0
-        for i in range(self.height):
-            if not self.board.gameover and np.all(self.board.array[y0 + i] == 1):
-                self.board.drop_row(y0 + i)
-                rows_completed += 1
-        if rows_completed > 0:
-            self.board.score.rows_completed(rows_completed)
-            self.board.apply_gravity(INITIAL_SPEED + self.board.score.points * 0.00033)
+        # check for completed rows
+        self.board.finish_completed_rows(y0, y0 + self.height)
 
+        # swap to next block
         if not self.board.gameover:
             if not self.board.block_next.detect_collision(None):
                 self.board.block = self.board.block_next
                 self.board.block_next = Block(get_random_block_type(), self.board)
-                self.board.gravity.start()
+                self.board.block.unfreeze()
             else: # next block is stuck already
                 self.board.gameover = True
                 self.board.block_next.finalize()
@@ -298,7 +327,7 @@ def main():
     def on_release(key: Key | KeyCode):
         if isinstance(key, Key):
             if key == Key.esc:
-                board.gravity.stop()
+                board.pause()
                 return False
         if isinstance(key, KeyCode):
             match key.char:
