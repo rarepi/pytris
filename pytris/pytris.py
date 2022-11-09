@@ -226,7 +226,7 @@ class Block:
         if not self.detect_collision(None, True):
             self.array = np.rot90(self.array)
         else:
-            for direction in Direction:
+            for direction in (Direction.RIGHT, Direction.LEFT):
                 if not self.detect_collision(direction, True):
                     self.board.pause()  # don't progress the game while the block is rotated at an illegal location
                     self.array = np.rot90(self.array) # rotate block into illegal location
@@ -241,19 +241,20 @@ class Block:
 
         match direction:
             case Direction.UP:
-                return # not a valid Tetris move
+                return # not a valid move
             case Direction.RIGHT:
-                if self.pos[0] + self.width < self.board.width and not self.detect_collision(direction):
+                if not self.detect_collision(direction):
                     self.pos[0] = self.pos[0] + 1
             case Direction.DOWN:
-                if self.pos[1] + self.height < self.board.height and not self.detect_collision(direction):
+                if not self.detect_collision(direction):
                     self.pos[1] = self.pos[1] + 1
                 else:
                     self.finalize()
             case Direction.LEFT:
-                if self.pos[0] > 0 and not self.detect_collision(direction):
+                if not self.detect_collision(direction):
                     self.pos[0] = self.pos[0] - 1
         self.board.render()
+        print("move end")
 
     def finalize(self):
         if self.detect_collision(None):
@@ -305,7 +306,7 @@ class Block:
                 x0 -= 1
                 x1 -= 1
             case _:
-                None
+                pass
 
         if x1 > self.board.width or y1 > self.board.height:
             return True
