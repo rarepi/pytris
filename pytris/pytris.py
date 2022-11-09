@@ -209,12 +209,16 @@ class Block:
         self._gravity = RepeatedTimer(1 / g, self.move, Direction.DOWN)
 
     def freeze(self):
-        if self._gravity is not None:
-            self._gravity.stop()
+        try:
+            self._gravity.pause()
+        except AttributeError:
+            pass # no need to freeze if there is no gravity
 
     def unfreeze(self):
-        if self._gravity is not None:
-            self._gravity.start()
+        try:
+            self._gravity.resume()
+        except AttributeError:
+            pass # no need to unfreeze if there is no gravity
 
     def rotate(self):
         if self.board.gameover:
@@ -224,10 +228,10 @@ class Block:
         else:
             for direction in Direction:
                 if not self.detect_collision(direction, True):
-                    self.board.pause_renderer = True
-                    self.array = np.rot90(self.array)
-                    self.move(direction)
-                    self.board.pause_renderer = False
+                    self.board.pause()  # don't progress the game while the block is rotated at an illegal location
+                    self.array = np.rot90(self.array) # rotate block into illegal location
+                    self.move(direction) # move block into legal location
+                    self.board.resume()
                     break
         self.board.render()
 
