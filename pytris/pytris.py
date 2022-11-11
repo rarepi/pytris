@@ -212,7 +212,7 @@ class Block:
         if self.board is not None:
             self.pos = [self.board.width//2 - self.width//2, 0]    # x,y
         else:
-            self.pos = [0, 0]
+            self.pos = None
 
     @property
     def gravity(self):
@@ -250,6 +250,12 @@ class Block:
     def rotate(self):
         if self.board.gameover:
             return
+
+        # no need to check for collision if there is no board
+        if self.board is None:
+            self.array = np.rot90(self.array)
+            return
+
         if not self.detect_collision(None, True):
             self.array = np.rot90(self.array)
         else:
@@ -263,7 +269,7 @@ class Block:
         self.board.render()
 
     def move(self, direction):
-        if self.board.gameover:
+        if self.board is None or self.board.gameover:
             return
 
         match direction:
@@ -284,9 +290,11 @@ class Block:
         self.board.render()
 
     def finalize(self):
+        if self.board is None:
+            raise AttributeError("Cannot finalize block when no board is set.")
+
         if self.detect_collision(None):
             self.board.gameover = True
-
         self.freeze()
         x0 = self.pos[0]
         y0 = self.pos[1]
@@ -309,6 +317,9 @@ class Block:
                 self.board.block_next.finalize()
 
     def detect_collision(self, move_direction, rotate = False):
+        if self.board is None:
+            raise AttributeError("Cannot detect collision when no board is set.")
+
         if rotate:
             block_array = np.rot90(self.array)
         else:
