@@ -188,10 +188,7 @@ class Block:
     def __init__(self, array: np.ndarray, board: Board):
         self.array = array
         self.board = board
-        if self.board is not None:
-            self.pos = [self.board.width//2 - self.width//2, 0]    # x,y
-        else:
-            self.pos = [0, 0]
+        self.pos: list[int, int]
         self._gravity: RepeatedTimer
         self.gravity: float
 
@@ -210,6 +207,12 @@ class Block:
     @board.setter
     def board(self, board: Board):
         self._board = board
+
+        # move block to starting position of board
+        if self.board is not None:
+            self.pos = [self.board.width//2 - self.width//2, 0]    # x,y
+        else:
+            self.pos = [0, 0]
 
     @property
     def gravity(self):
