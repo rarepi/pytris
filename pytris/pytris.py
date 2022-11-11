@@ -188,7 +188,10 @@ class Block:
     def __init__(self, array: np.ndarray, board: Board):
         self.array = array
         self.board = board
-        self.pos = [self.board.width//2 - self.width//2, 0]    # x,y
+        if self.board is not None:
+            self.pos = [self.board.width//2 - self.width//2, 0]    # x,y
+        else:
+            self.pos = [0, 0]
         self._gravity: RepeatedTimer
         self.gravity: float
 
@@ -201,12 +204,33 @@ class Block:
         return self.array.shape[1]
 
     @property
+    def board(self):
+        return self._board
+
+    @board.setter
+    def board(self, board: Board):
+        self._board = board
+
+    @property
     def gravity(self):
-        return (1 / self._gravity.interval)
+        if self._gravity is None or self._gravity.interval <= 0:
+            return 0
+
+        if self._gravity.args[0] is Direction.DOWN:
+            return (1 / self._gravity.interval)
+        elif self._gravity.args[0] is Direction.UP:
+            return (-1 / self._gravity.interval)
+        else:
+            raise ValueError("Unexpected gravity direction {}".format(self._gravity.args[0]))
 
     @gravity.setter
     def gravity(self, g: float):
-        self._gravity = RepeatedTimer(1 / g, self.move, Direction.DOWN)
+        if g > 0:
+            self._gravity = RepeatedTimer(1 / g, self.move, Direction.DOWN)
+        elif g < 0:
+            self._gravity = RepeatedTimer(-1 / g, self.move, Direction.UP)
+        else:
+            self._gravity = None
 
     def freeze(self):
         try:
@@ -241,7 +265,8 @@ class Block:
 
         match direction:
             case Direction.UP:
-                return # not a valid move
+                if not self.detect_collision(direction):
+                    self.pos[0] = self.pos[1] - 1
             case Direction.RIGHT:
                 if not self.detect_collision(direction):
                     self.pos[0] = self.pos[0] + 1
@@ -254,7 +279,6 @@ class Block:
                 if not self.detect_collision(direction):
                     self.pos[0] = self.pos[0] - 1
         self.board.render()
-        print("move end")
 
     def finalize(self):
         if self.detect_collision(None):
@@ -337,7 +361,7 @@ def main():
         if isinstance(key, KeyCode):
             match key.char:
                 case 'w':
-                    board.block.move(Direction.UP)
+                    pass
                 case 'a':
                     board.block.move(Direction.LEFT)
                 case 's':
